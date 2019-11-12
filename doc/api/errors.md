@@ -881,6 +881,11 @@ provided.
 Encoding provided to `TextDecoder()` API was not one of the
 [WHATWG Supported Encodings][].
 
+<a id="ERR_EVAL_ESM_CANNOT_PRINT"></a>
+### `ERR_EVAL_ESM_CANNOT_PRINT`
+
+`--print` cannot be used with ESM input.
+
 <a id="ERR_FALSY_VALUE_REJECTION"></a>
 ### `ERR_FALSY_VALUE_REJECTION`
 

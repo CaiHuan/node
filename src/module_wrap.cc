@@ -394,13 +394,15 @@ void ModuleWrap::GetNamespace(const FunctionCallbackInfo<Value>& args) {
   Local<Module> module = obj->module_.Get(isolate);
 
   switch (module->GetStatus()) {
-    default:
-      return env->ThrowError(
-          "cannot get namespace, Module has not been instantiated");
     case v8::Module::Status::kInstantiated:
     case v8::Module::Status::kEvaluating:
     case v8::Module::Status::kEvaluated:
+    case v8::Module::Status::kErrored:
       break;
+    case v8::Module::Status::kUninstantiated:
+    case v8::Module::Status::kInstantiating:
+      return env->ThrowError(
+          "cannot get namespace, module has not been instantiated");
   }
 
   Local<Value> result = module->GetModuleNamespace();
@@ -1564,19 +1566,19 @@ MaybeLocal<Value> ModuleWrap::SyntheticModuleEvaluationStepsCallback(
   TryCatchScope try_catch(env);
   Local<Function> synthetic_evaluation_steps =
       obj->synthetic_evaluation_steps_.Get(isolate);
+  obj->synthetic_evaluation_steps_.Reset();
   MaybeLocal<Value> ret = synthetic_evaluation_steps->Call(context,
       obj->object(), 0, nullptr);
   if (ret.IsEmpty()) {
     CHECK(try_catch.HasCaught());
   }
-  obj->synthetic_evaluation_steps_.Reset();
   if (try_catch.HasCaught() && !try_catch.HasTerminated()) {
     CHECK(!try_catch.Message().IsEmpty());
     CHECK(!try_catch.Exception().IsEmpty());
     try_catch.ReThrow();
     return MaybeLocal<Value>();
   }
-  return ret;
+  return Undefined(isolate);
 }
 
 void ModuleWrap::SetSyntheticExport(const FunctionCallbackInfo<Value>& args) {
@@ -1632,6 +1634,8 @@ void ModuleWrap::Initialize(Local<Object> target,
                             Local<Value> unused,
                             Local<Context> context,
                             void* priv) {
+  v8::V8::SetFlagsFromString("--harmony-top-level-await");
+
   Environment* env = Environment::GetCurrent(context);
   Isolate* isolate = env->isolate();
 
